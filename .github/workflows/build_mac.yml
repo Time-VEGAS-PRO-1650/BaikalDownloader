@@ -1,0 +1,68 @@
+name: Build macOS App
+
+# Запускаем скрипт вручную по нажатию кнопки
+on:
+  workflow_dispatch: 
+
+jobs:
+  build-macos:
+    runs-on: macos-latest # GitHub выделяет нам виртуальный Mac!
+
+    steps:
+      - name: Скачиваем код из репозитория
+        uses: actions/checkout@v4
+
+      - name: Устанавливаем Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Устанавливаем библиотеки
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pywebview
+
+      - name: Создаем Mac-иконку (.icns) из download.png
+        run: |
+          mkdir icon.iconset
+          sips -z 16 16     download.png --out icon.iconset/icon_16x16.png
+          sips -z 32 32     download.png --out icon.iconset/icon_16x16@2x.png
+          sips -z 32 32     download.png --out icon.iconset/icon_32x32.png
+          sips -z 64 64     download.png --out icon.iconset/icon_32x32@2x.png
+          sips -z 128 128   download.png --out icon.iconset/icon_128x128.png
+          sips -z 256 256   download.png --out icon.iconset/icon_128x128@2x.png
+          sips -z 512 512   download.png --out icon.iconset/icon_512x512.png
+          iconutil -c icns icon.iconset -o download.icns
+
+      - name: Собираем приложение через PyInstaller
+        run: |
+          pyinstaller --clean \
+                      --windowed \
+                      --noupx \
+                      --icon="download.icns" \
+                      --add-data "bkL.png:." \
+                      --name "Baikal Downloader" \
+                      server.py
+
+      - name: Устанавливаем утилиту для создания DMG
+        run: brew install create-dmg
+
+      - name: Упаковываем в DMG образ (инсталлятор для Mac)
+        run: |
+          create-dmg \
+            --volname "Baikal Downloader Installer" \
+            --volicon "download.icns" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "Baikal Downloader.app" 150 190 \
+            --hide-extension "Baikal Downloader.app" \
+            --app-drop-link 450 190 \
+            "Baikal_Downloader_5.5.4_macOS.dmg" \
+            "dist/Baikal Downloader.app"
+
+      - name: Загружаем готовый DMG на GitHub (чтобы вы могли скачать)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Baikal-Downloader-macOS
+          path: Baikal_Downloader_5.5.4_macOS.dmg
