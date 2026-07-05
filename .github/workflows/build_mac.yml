@@ -21,33 +21,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller pywebview
 
-      - name: Скачиваем FFmpeg для macOS
-        run: |
-          # Скачиваем готовый бинарник ffmpeg для Mac
-          curl -L -o ffmpeg https://github.com/eugeneware/ffmpeg-static/releases/download/b5.0.1/darwin-x64
-          # Делаем его исполняемым
-          chmod +x ffmpeg
-
-      - name: Создаем Mac-иконку (.icns)
+      - name: Создаем Mac-иконку (.icns) из вашего логотипа
         run: |
           mkdir icon.iconset
-          sips -z 16 16     download.png --out icon.iconset/icon_16x16.png
-          sips -z 32 32     download.png --out icon.iconset/icon_16x16@2x.png
-          sips -z 32 32     download.png --out icon.iconset/icon_32x32.png
-          sips -z 64 64     download.png --out icon.iconset/icon_32x32@2x.png
-          sips -z 128 128   download.png --out icon.iconset/icon_128x128.png
-          sips -z 256 256   download.png --out icon.iconset/icon_128x128@2x.png
-          sips -z 512 512   download.png --out icon.iconset/icon_512x512.png
-          iconutil -c icns icon.iconset -o download.icns
+          sips -z 16 16     bkL.png --out icon.iconset/icon_16x16.png
+          sips -z 32 32     bkL.png --out icon.iconset/icon_16x16@2x.png
+          sips -z 32 32     bkL.png --out icon.iconset/icon_32x32.png
+          sips -z 64 64     bkL.png --out icon.iconset/icon_32x32@2x.png
+          sips -z 128 128   bkL.png --out icon.iconset/icon_128x128.png
+          sips -z 256 256   bkL.png --out icon.iconset/icon_128x128@2x.png
+          sips -z 512 512   bkL.png --out icon.iconset/icon_512x512.png
+          iconutil -c icns icon.iconset -o icon.icns
 
       - name: Собираем приложение через PyInstaller
         run: |
           pyinstaller --clean \
                       --windowed \
                       --noupx \
-                      --icon="download.icns" \
+                      --icon="icon.icns" \
                       --add-data "bkL.png:." \
-                      --add-binary "ffmpeg:." \
                       --name "Baikal Downloader" \
                       server.py
 
@@ -58,7 +50,7 @@ jobs:
         run: |
           create-dmg \
             --volname "Baikal Downloader Installer" \
-            --volicon "download.icns" \
+            --volicon "icon.icns" \
             --window-pos 200 120 \
             --window-size 600 400 \
             --icon-size 100 \
