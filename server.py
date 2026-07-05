@@ -3969,9 +3969,15 @@ def download_ffmpeg():
 
     latest_tag, download_url = get_latest_ffmpeg_release()
 
+    # --- ФИКС ДЛЯ MACOS: Резервная ссылка, если архив не найден ---
     if not download_url:
-        log("Не удалось получить архив ffmpeg", "warn")
-        return False
+        if not IS_WIN:
+            log("Использую резервную ссылку FFmpeg для macOS...", "info")
+            download_url = "https://github.com/eugeneware/ffmpeg-static/releases/download/b5.0.1/darwin-x64"
+        else:
+            log("Не удалось получить архив ffmpeg", "warn")
+            return False
+    # --------------------------------------------------------------
 
     log("Скачиваю ffmpeg...", "info")
 
@@ -3980,6 +3986,18 @@ def download_ffmpeg():
 
     try:
         urllib.request.urlretrieve(download_url, tmp_zip)
+
+        # --- ФИКС ДЛЯ MACOS: Если скачался сразу бинарник (не ZIP) ---
+        if not IS_WIN and not download_url.endswith('.zip'):
+            os.makedirs(FFMPEG_BIN_DIR, exist_ok=True)
+            target_bin = os.path.join(FFMPEG_BIN_DIR, "ffmpeg")
+            shutil.copy2(tmp_zip, target_bin)
+            os.chmod(target_bin, 0o755) # Выдаем права на запуск
+            FFMPEG_PATH = target_bin
+            save_ffmpeg_installed_version("mac-static-b5.0.1")
+            log("ffmpeg установлен (прямой бинарник)", "ok")
+            return True
+        # -------------------------------------------------------------
 
         if os.path.isdir(tmp_extract):
             shutil.rmtree(tmp_extract, ignore_errors=True)
@@ -3990,20 +4008,23 @@ def download_ffmpeg():
             z.extractall(tmp_extract)
 
         found = None
+        
+        # --- ФИКС ДЛЯ MACOS: Ищем ffmpeg.exe на Windows и просто ffmpeg на Mac ---
+        target_file = f"ffmpeg{EXE_EXT}"
 
         for root, _, files in os.walk(tmp_extract):
-            if "ffmpeg.exe" in files and os.path.basename(root).lower() == "bin":
-                found = os.path.join(root, "ffmpeg.exe")
+            if target_file in files and os.path.basename(root).lower() == "bin":
+                found = os.path.join(root, target_file)
                 break
 
         if not found:
             for root, _, files in os.walk(tmp_extract):
-                if "ffmpeg.exe" in files:
-                    found = os.path.join(root, "ffmpeg.exe")
+                if target_file in files:
+                    found = os.path.join(root, target_file)
                     break
 
         if not found:
-            log("В архиве не найден ffmpeg.exe", "warn")
+            log(f"В архиве не найден {target_file}", "warn")
             return False
 
         if os.path.isdir(FFMPEG_DIR):
@@ -4015,14 +4036,18 @@ def download_ffmpeg():
             shutil.copytree(bin_dir, FFMPEG_BIN_DIR)
         else:
             os.makedirs(FFMPEG_BIN_DIR, exist_ok=True)
-            shutil.copy2(found, os.path.join(FFMPEG_BIN_DIR, f"ffmpeg{EXE_EXT}"))
+            shutil.copy2(found, os.path.join(FFMPEG_BIN_DIR, target_file))
 
-        FFMPEG_PATH = os.path.join(FFMPEG_BIN_DIR, f"ffmpeg{EXE_EXT}")
+        FFMPEG_PATH = os.path.join(FFMPEG_BIN_DIR, target_file)
+        
+        # --- ФИКС ДЛЯ MACOS: Обязательно делаем файл исполняемым ---
         if not IS_WIN:
             try:
                 os.chmod(FFMPEG_PATH, 0o755)
             except Exception as e:
                 log(f"Не удалось выдать права на запуск ffmpeg: {e}", "warn")
+        # -------------------------------------------------------------
+        
         save_ffmpeg_installed_version(latest_tag or "unknown")
 
         log(f"ffmpeg установлен: {latest_tag or 'unknown'}", "ok")
