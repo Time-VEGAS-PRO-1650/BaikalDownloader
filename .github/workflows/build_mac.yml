@@ -1,12 +1,11 @@
 name: Build macOS App
 
-# Запускаем скрипт вручную по нажатию кнопки
 on:
   workflow_dispatch: 
 
 jobs:
   build-macos:
-    runs-on: macos-latest # GitHub выделяет нам виртуальный Mac!
+    runs-on: macos-latest
 
     steps:
       - name: Скачиваем код из репозитория
@@ -22,7 +21,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller pywebview
 
-      - name: Создаем Mac-иконку (.icns) из download.png
+      - name: Скачиваем FFmpeg для macOS
+        run: |
+          # Скачиваем готовый бинарник ffmpeg для Mac
+          curl -L -o ffmpeg https://github.com/eugeneware/ffmpeg-static/releases/download/b5.0.1/darwin-x64
+          # Делаем его исполняемым
+          chmod +x ffmpeg
+
+      - name: Создаем Mac-иконку (.icns)
         run: |
           mkdir icon.iconset
           sips -z 16 16     download.png --out icon.iconset/icon_16x16.png
@@ -41,13 +47,14 @@ jobs:
                       --noupx \
                       --icon="download.icns" \
                       --add-data "bkL.png:." \
+                      --add-binary "ffmpeg:." \
                       --name "Baikal Downloader" \
                       server.py
 
       - name: Устанавливаем утилиту для создания DMG
         run: brew install create-dmg
 
-      - name: Упаковываем в DMG образ (инсталлятор для Mac)
+      - name: Упаковываем в DMG образ
         run: |
           create-dmg \
             --volname "Baikal Downloader Installer" \
@@ -61,7 +68,7 @@ jobs:
             "Baikal_Downloader_5.5.4_macOS.dmg" \
             "dist/Baikal Downloader.app"
 
-      - name: Загружаем готовый DMG на GitHub (чтобы вы могли скачать)
+      - name: Загружаем готовый DMG на GitHub
         uses: actions/upload-artifact@v4
         with:
           name: Baikal-Downloader-macOS
