@@ -16,21 +16,49 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Добавляем установку Pillow для умного ресайза с отступами
       - name: Устанавливаем библиотеки
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller pywebview
+          pip install pyinstaller pywebview pillow
 
+      # Генерируем правильный .iconset с отступами ~80% (стандарт Apple HIG)
       - name: Создаем Mac-иконку (.icns) из вашего логотипа
         run: |
-          mkdir icon.iconset
-          sips -z 16 16     bkL.png --out icon.iconset/icon_16x16.png
-          sips -z 32 32     bkL.png --out icon.iconset/icon_16x16@2x.png
-          sips -z 32 32     bkL.png --out icon.iconset/icon_32x32.png
-          sips -z 64 64     bkL.png --out icon.iconset/icon_32x32@2x.png
-          sips -z 128 128   bkL.png --out icon.iconset/icon_128x128.png
-          sips -z 256 256   bkL.png --out icon.iconset/icon_128x128@2x.png
-          sips -z 512 512   bkL.png --out icon.iconset/icon_512x512.png
+          python -c '
+          import os
+          from PIL import Image
+
+          img = Image.open("bkL.png")
+          os.makedirs("icon.iconset", exist_ok=True)
+
+          # Список размеров (название файла, размер холста, размер иконки внутри холста)
+          # Согласно Apple HIG, размер иконки внутри должен быть ~80-82% от размера холста
+          sizes = [
+              ("16x16", 16, 13),
+              ("16x16@2x", 32, 26),
+              ("32x32", 32, 26),
+              ("32x32@2x", 64, 52),
+              ("128x128", 128, 105),
+              ("128x128@2x", 256, 210),
+              ("256x256", 256, 210),
+              ("256x256@2x", 512, 420),
+              ("512x512", 512, 420),
+              ("512x512@2x", 1024, 824)
+          ]
+
+          for name, canvas_size, icon_size in sizes:
+              # Изменяем размер иконки с сохранением пропорций
+              resized_icon = img.resize((icon_size, icon_size), Image.Resampling.LANCZOS)
+              # Создаем прозрачный холст нужного размера
+              canvas = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
+              # Центрируем иконку на холсте
+              offset = (canvas_size - icon_size) // 2
+              canvas.paste(resized_icon, (offset, offset))
+              # Сохраняем
+              canvas.save(f"icon.iconset/icon_{name}.png")
+          '
+          # Превращаем iconset в готовый файл .icns
           iconutil -c icns icon.iconset -o icon.icns
 
       - name: Собираем приложение через PyInstaller
@@ -57,11 +85,11 @@ jobs:
             --icon "Baikal Downloader.app" 150 190 \
             --hide-extension "Baikal Downloader.app" \
             --app-drop-link 450 190 \
-            "Baikal_Downloader_5.5.4_macOS.dmg" \
+            "Baikal_Downloader_5.5.6_macOS.dmg" \
             "dist/Baikal Downloader.app"
 
       - name: Загружаем готовый DMG на GitHub
         uses: actions/upload-artifact@v4
         with:
           name: Baikal-Downloader-macOS
-          path: Baikal_Downloader_5.5.4_macOS.dmg
+          path: Baikal_Downloader_5.5.6_macOS.dmg
