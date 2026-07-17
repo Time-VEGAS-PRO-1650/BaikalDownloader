@@ -85,11 +85,11 @@ jobs:
             --icon "Baikal Downloader.app" 150 190 \
             --hide-extension "Baikal Downloader.app" \
             --app-drop-link 450 190 \
-            "Baikal_Downloader_5.5.7_macOS.dmg" \
+            "Baikal_Downloader_5.5.12_macOS.dmg" \
             "dist/Baikal Downloader.app"
 
       - name: Загружаем готовый DMG на GitHub
         uses: actions/upload-artifact@v4
         with:
           name: Baikal-Downloader-macOS
-          path: Baikal_Downloader_5.5.7_macOS.dmg
+          path: Baikal_Downloader_5.5.12_macOS.dmg
