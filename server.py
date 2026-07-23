@@ -21,7 +21,6 @@ import webbrowser
 import gzip
 import ssl
 import html  # Для раскодирования HTML-сущностей (&amp; и т.д.)
-import html  # Для раскодирования HTML-сущностей (&amp; и т.д.)
 
 # =====================================================================
 def find_auth_browser():
