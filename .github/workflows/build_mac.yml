@@ -68,6 +68,7 @@ jobs:
                       --noupx \
                       --icon="icon.icns" \
                       --add-data "bkL.png:." \
+                      --add-data "done.wav:data/sound" \
                       --name "Baikal Downloader" \
                       server.py
 
